@@ -112,7 +112,7 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
           </div>
         </div>
 
-        {/* --- GEOMETRIC TIMELINE WITH THE PALETTE --- */}
+        {/* --- TIMELINE WITH TEAL CURSOR INDICATOR --- */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Day Sun-Profile (08:00 - 22:00)</span>
@@ -134,14 +134,15 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
               ))}
             </div>
 
+            {/* Custom pin and bubble styled with Teal (#7cbcc7) for high-contrast visibility */}
             <div 
               className="absolute top-0 bottom-1 flex flex-col items-center transition-all duration-300 pointer-events-none"
               style={{ left: `${pointerPercent}%` }}
             >
-              <div className="bg-[#350505] text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-md -translate-y-5 whitespace-nowrap">
+              <div className="bg-[#7cbcc7] text-[#350505] text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-md -translate-y-5 whitespace-nowrap border border-white">
                 {formatDisplayTime(evaluatedTime)}
               </div>
-              <div className="w-[1.5px] h-[100%] bg-[#350505] z-10"></div>
+              <div className="w-[2px] h-[100%] bg-[#7cbcc7] z-10 shadow-sm"></div>
             </div>
           </div>
 
@@ -172,21 +173,23 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
         </div>
 
         <div className="pt-2 space-y-2">
+          {/* Primary Action styled with Burgundy (#350505) and Sand text (#eab88D) */}
           <a
             href={getDirectionsUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full py-3 bg-[#350505] hover:bg-[#350505]/95 text-white rounded-xl text-center text-sm font-bold transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 bg-[#350505] hover:bg-[#350505]/95 text-[#eab88D] rounded-xl text-center text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md"
           >
             🗺️ Open in Map Navigation
           </a>
 
           <div className="flex items-center gap-2">
+            {/* Toggle button explicitly styled with Teal (#7cbcc7) when editing */}
             <button
               onClick={onToggleAdjustMode}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-colors ${
                 isAdjustingPoint
-                  ? 'bg-indigo-600 border-indigo-600 text-white'
+                  ? 'bg-[#7cbcc7] border-[#7cbcc7] text-[#350505] shadow-sm'
                   : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
             >
