@@ -54,9 +54,7 @@ export default function App() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [weather, setWeather] = useState<WeatherState | null>(null);
-  
   const [targetCenter, setTargetCenter] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
-  // Track selected district for highlight state
   const [activeDistrict, setActiveDistrict] = useState<string | null>(null);
 
   const evaluatedTime = useMemo(() => {
@@ -121,6 +119,12 @@ export default function App() {
     const interval = setInterval(syncToCurrent, 60000);
     return () => clearInterval(interval);
   }, [isLiveNow]);
+
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>();
+    venues.forEach((v) => v.tags.forEach((t) => tags.add(t)));
+    return Array.from(tags);
+  }, [venues]);
 
   const filteredVenues = useMemo(() => {
     return venues.filter((v) => {
@@ -225,7 +229,7 @@ export default function App() {
       
       {/* Search Header and live Weather Alerts */}
       <div className="absolute top-4 left-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
-        <div className="w-full pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-[#eab88d]/20 p-2.5 flex items-center justify-between gap-2.5">
+        <div className="w-full pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-[#eab88d]/30 p-2.5 flex items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <svg className="w-5 h-5 text-slate-400 flex-shrink-0 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -239,9 +243,9 @@ export default function App() {
             />
           </div>
 
-          {/* Weather pill explicitly styled with Teal (#7cbcc7) */}
+          {/* Weather pill implicitly styled with Secondary/BG (#7cbcc7) */}
           {weather && (
-            <div className="text-xs font-bold text-[#350505] bg-[#7cbcc7]/15 border border-[#7cbcc7]/30 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 flex-shrink-0 mr-1 shadow-sm" title={weather.description}>
+            <div className="text-xs font-bold text-[#350505] bg-[#7cbcc7]/15 border border-[#7cbcc7]/35 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 flex-shrink-0 mr-1 shadow-sm" title={weather.description}>
               <span>{weather.icon}</span>
               <span>{weather.temp}°C</span>
             </div>
@@ -249,6 +253,7 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-1.5 pointer-events-auto overflow-x-auto no-scrollbar py-0.5">
+          {/* Main chips styled with Main (#cf5a47) and Secondary/BG (#7cbcc7) */}
           <button
             onClick={() => setIsLiveNow(true)}
             className={`px-4 py-2 rounded-full text-xs font-bold shadow-md transition-all whitespace-nowrap border ${
@@ -267,7 +272,7 @@ export default function App() {
             }}
             className={`px-4 py-2 rounded-full text-xs font-bold shadow-md transition-all whitespace-nowrap border ${
               activeFilters.minHours >= 2
-                ? 'bg-[#350505] border-[#350505] text-white shadow-sm'
+                ? 'bg-[#7cbcc7] border-[#7cbcc7] text-[#350505] shadow-[#7cbcc7]/15 ring-2 ring-[#7cbcc7]/15'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
@@ -278,7 +283,7 @@ export default function App() {
             onClick={() => setShowFilters(true)}
             className={`px-4 py-2 rounded-full text-xs font-bold shadow-md transition-all whitespace-nowrap border ${
               showFilters || activeFilters.tags.length > 0 || activeFilters.onlyFavs
-                ? 'bg-[#350505] border-[#350505] text-white shadow-sm'
+                ? 'bg-[#7cbcc7] border-[#7cbcc7] text-[#350505] shadow-[#7cbcc7]/15 ring-2 ring-[#7cbcc7]/15'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
@@ -286,7 +291,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* --- DYNAMIC DISTRICT CHIPS REDESIGNED WITH PALETTE (Teal Active, Peach Inactive) --- */}
+        {/* District Chips (Selected: Teal #7cbcc7 | Inactive: Peach #eab88d/10) */}
         <div className="flex items-center gap-1.5 pointer-events-auto overflow-x-auto no-scrollbar py-0.5">
           {DISTRICTS.map((dist) => {
             const isSelected = activeDistrict === dist.name;
@@ -299,8 +304,8 @@ export default function App() {
                 }}
                 className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold shadow-md transition-all whitespace-nowrap border ${
                   isSelected
-                    ? 'bg-[#7cbcc7] border-[#7cbcc7] text-white shadow-[#7cbcc7]/20 ring-2 ring-[#7cbcc7]/15'
-                    : 'bg-[#eab88D]/10 border-[#eab88D]/30 text-[#350505] hover:bg-[#eab88D]/20'
+                    ? 'bg-[#7cbcc7] border-[#7cbcc7] text-[#350505] shadow-[#7cbcc7]/15'
+                    : 'bg-[#eab88D]/10 border-[#eab88D]/35 text-[#350505] hover:bg-[#eab88D]/20'
                 }`}
               >
                 {dist.name}

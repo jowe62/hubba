@@ -82,13 +82,14 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
       const activeLng = venue.outdoorPoint?.lng ?? venue.lng;
       const { inSunNow } = calculateSunDetails(activeLat, activeLng, evaluatedTime, venue.horizonMask);
 
-      // Pins styled with Terracotta (#cf5a47) and a soft glow
+      // Active sun dot uses Main (#cf5a47)
+      // Shaded dot shunts to a soft, semi-translucent warm Peach (#eab88d) instead of gray
       const html = `
         <div class="flex items-center justify-center transition-transform duration-300">
           <div class="rounded-full border-2 border-white shadow-md transition-all duration-300 ${
             inSunNow 
               ? 'w-5 h-5 bg-[#cf5a47] ring-4 ring-[#cf5a47]/20 scale-110' 
-              : 'w-3 h-3 bg-slate-400 opacity-65'
+              : 'w-3 h-3 bg-[#eab88d] opacity-55'
           }"></div>
         </div>
       `;
@@ -134,10 +135,10 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
       const adjustIcon = L.divIcon({
         html: `
           <div class="flex flex-col items-center">
-            <div class="bg-[#350505] text-white rounded-lg px-2.5 py-1 text-[10px] font-bold shadow-md whitespace-nowrap mb-1">
+            <div class="bg-[#cf5a47] text-white rounded-lg px-2.5 py-1 text-[10px] font-bold shadow-md whitespace-nowrap mb-1">
               Drag to outdoor seating
             </div>
-            <div class="w-7 h-7 rounded-full border-2 border-white bg-[#350505] shadow-xl flex items-center justify-center text-white">
+            <div class="w-7 h-7 rounded-full border-2 border-white bg-[#cf5a47] shadow-xl flex items-center justify-center text-white">
               📍
             </div>
           </div>
@@ -161,7 +162,6 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     }
   }, [isAdjustingPoint, selectedVenue]);
 
-  // Geolocation dot styled with Teal (#7cbcc7)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;

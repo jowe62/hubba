@@ -112,7 +112,7 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
           </div>
         </div>
 
-        {/* --- TIMELINE WITH TEAL CURSOR INDICATOR --- */}
+        {/* --- GEOMETRIC TIMELINE WITH THE PALETTE --- */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Day Sun-Profile (08:00 - 22:00)</span>
@@ -173,23 +173,23 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
         </div>
 
         <div className="pt-2 space-y-2">
-          {/* Primary Action styled with Burgundy (#350505) and Sand text (#eab88D) */}
+          {/* Primary Action Button now styled in Secondary/Teal (#7cbcc7) with Dark Burgundy text (#350505) */}
           <a
             href={getDirectionsUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full py-3 bg-[#350505] hover:bg-[#350505]/95 text-[#eab88D] rounded-xl text-center text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md"
+            className="w-full py-3 bg-[#7cbcc7] hover:bg-[#7cbcc7]/90 text-[#350505] rounded-xl text-center text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md"
           >
             🗺️ Open in Map Navigation
           </a>
 
           <div className="flex items-center gap-2">
-            {/* Toggle button explicitly styled with Teal (#7cbcc7) when editing */}
+            {/* Toggle button explicitly styled with Main/Terracotta (#cf5a47) when editing */}
             <button
               onClick={onToggleAdjustMode}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-colors ${
                 isAdjustingPoint
-                  ? 'bg-[#7cbcc7] border-[#7cbcc7] text-[#350505] shadow-sm'
+                  ? 'bg-[#cf5a47] border-[#cf5a47] text-white shadow-sm'
                   : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
             >

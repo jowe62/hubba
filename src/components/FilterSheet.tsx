@@ -25,6 +25,8 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
 }) => {
   return (
     <div className="bg-white/95 backdrop-blur-md rounded-t-[2.5rem] shadow-[0_-12px_40px_-15px_rgba(0,0,0,0.15)] border-t border-slate-100 flex flex-col max-h-[85vh] overflow-hidden transition-all duration-300">
+      
+      {/* Drag Handle Bar */}
       <div className="w-full pt-3 pb-1 flex flex-col items-center justify-center">
         <div className="w-12 h-1.5 bg-slate-200 rounded-full mb-1"></div>
       </div>
@@ -46,7 +48,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
             type="checkbox"
             checked={onlyFavorites}
             onChange={onToggleFavorites}
-            className="w-5 h-5 text-slate-900 border-slate-300 rounded focus:ring-slate-900 accent-[#350505]"
+            className="w-5 h-5 text-slate-900 border-slate-300 rounded focus:ring-slate-900 accent-[#cf5a47]"
           />
         </div>
 
@@ -103,9 +105,10 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
           >
             Reset Filters
           </button>
+          {/* Apply button explicitly styled with Secondary/Teal (#7cbcc7) and Dark Burgundy text (#350505) */}
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-[#350505] hover:bg-[#350505]/95 text-white rounded-xl text-xs font-bold transition-all"
+            className="flex-1 py-3 bg-[#7cbcc7] hover:bg-[#7cbcc7]/95 text-[#350505] rounded-xl text-xs font-bold transition-all shadow-md"
           >
             Apply
           </button>

@@ -88,7 +88,6 @@ export const UnifiedBottomPanel: React.FC<UnifiedBottomPanelProps> = ({
         </div>
 
         <div className="relative w-full">
-          {/* Continuous slider active color set to Terracotta (#cf5a47) */}
           <input
             type="range"
             min={8 * 60}
@@ -112,7 +111,7 @@ export const UnifiedBottomPanel: React.FC<UnifiedBottomPanelProps> = ({
             onClick={onSetLiveNow}
             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
               isLiveNow
-                ? 'bg-[#7cbcc7]/10 border-[#7cbcc7] text-[#7cbcc7] shadow-sm'
+                ? 'bg-[#7cbcc7]/15 border-[#7cbcc7] text-[#350505] shadow-sm'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -126,7 +125,7 @@ export const UnifiedBottomPanel: React.FC<UnifiedBottomPanelProps> = ({
                 onClick={() => onTimeChange(preset.h, preset.m)}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
                   isActive
-                    ? 'bg-[#350505] border-[#350505] text-white shadow-sm'
+                    ? 'bg-[#cf5a47] border-[#cf5a47] text-white shadow-sm'
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
