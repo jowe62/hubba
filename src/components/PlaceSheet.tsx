@@ -112,13 +112,10 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
           </div>
         </div>
 
-        {/* --- GEOMETRIC TIMELINE WITH THE PALETTE --- */}
+        {/* --- TIMELINE SECTION (Legend is hidden) --- */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Day Sun-Profile (08:00 - 22:00)</span>
-            <span className="text-[10px] font-bold text-[#cf5a47] bg-[#cf5a47]/5 border border-[#cf5a47]/15 px-2 py-0.5 rounded">
-              Terracotta = Sun | Soft Sand = Shade
-            </span>
           </div>
 
           <div className="relative pt-1.5 pb-2">
@@ -134,7 +131,6 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
               ))}
             </div>
 
-            {/* Custom pin and bubble styled with Teal (#7cbcc7) for high-contrast visibility */}
             <div 
               className="absolute top-0 bottom-1 flex flex-col items-center transition-all duration-300 pointer-events-none"
               style={{ left: `${pointerPercent}%` }}
@@ -155,15 +151,6 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
           </div>
         </div>
 
-        <div className="p-3.5 bg-[#eab88d]/5 border border-[#eab88d]/15 rounded-2xl text-[11px] text-slate-500 leading-relaxed space-y-1">
-          <p className="font-bold text-[#350505] flex items-center gap-1">
-            <span>📐</span> V2 Shading Model Active
-          </p>
-          <p>
-            Rooftop shading calculations are generated locally against 3D building data imported from OpenStreetMap. This provides a detailed shadow path based on building heights.
-          </p>
-        </div>
-
         <div className="flex flex-wrap gap-1">
           {venue.tags.map((t) => (
             <span key={t} className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">
@@ -173,7 +160,6 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
         </div>
 
         <div className="pt-2 space-y-2">
-          {/* Primary Action Button now styled in Secondary/Teal (#7cbcc7) with Dark Burgundy text (#350505) */}
           <a
             href={getDirectionsUrl()}
             target="_blank"
@@ -184,7 +170,6 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
           </a>
 
           <div className="flex items-center gap-2">
-            {/* Toggle button explicitly styled with Main/Terracotta (#cf5a47) when editing */}
             <button
               onClick={onToggleAdjustMode}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-colors ${

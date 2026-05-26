@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Venue } from '../types';
-import { calculateSunDetails } from '../utils/sunUtils';
+import { calculateSunDetails, getSolarCoordinates, isPointInSun } from '../utils/sunUtils';
 
 interface HubbaMapProps {
   venues: Venue[];
@@ -14,6 +14,43 @@ interface HubbaMapProps {
   userLocation: { lat: number; lng: number } | null;
   onBoundsChange: (bounds: L.LatLngBounds) => void;
   targetCenter: { lat: number; lng: number; zoom?: number } | null;
+}
+
+// Calculates consecutive remaining sunny hours from the current selected time forward
+function getRemainingSunHours(venue: Venue, evaluatedTime: Date): number {
+  const activeLat = venue.outdoorPoint?.lat ?? venue.lat;
+  const activeLng = venue.outdoorPoint?.lng ?? venue.lng;
+  
+  const baseDate = new Date(evaluatedTime);
+  const { altitude: currAlt, azimuth: currAz } = getSolarCoordinates(activeLat, activeLng, baseDate);
+  const inSunNow = isPointInSun(currAlt, currAz, venue.horizonMask);
+  
+  if (!inSunNow) return 0;
+  
+  let consecutiveMins = 0;
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+  const day = baseDate.getDate();
+  const currentHour = baseDate.getHours();
+  const currentMin = baseDate.getMinutes();
+  
+  const startMins = currentHour * 60 + currentMin;
+  const endMins = 22 * 60; // Up to end of active window (22:00)
+  
+  for (let mins = startMins; mins <= endMins; mins += 10) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    const stepTime = new Date(year, month, day, h, m, 0);
+    const { altitude, azimuth } = getSolarCoordinates(activeLat, activeLng, stepTime);
+    
+    if (isPointInSun(altitude, azimuth, venue.horizonMask)) {
+      consecutiveMins += 10;
+    } else {
+      break; // Stop at first structural shade obstacle
+    }
+  }
+  
+  return consecutiveMins / 60;
 }
 
 export const HubbaMap: React.FC<HubbaMapProps> = ({
@@ -82,23 +119,26 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
       const activeLng = venue.outdoorPoint?.lng ?? venue.lng;
       const { inSunNow } = calculateSunDetails(activeLat, activeLng, evaluatedTime, venue.horizonMask);
 
-      // Active sun dot uses Main (#cf5a47)
-      // Shaded dot shunts to a soft, semi-translucent warm Peach (#eab88d) instead of gray
+      // Calculates fill percentage based on: 4+ hrs = 100%, 2 hrs = 50%, 1 hr = 25%
+      const remainingHours = getRemainingSunHours(venue, evaluatedTime);
+      const fillPercent = Math.min(100, Math.round((remainingHours / 4) * 100));
+
+      // Uses pure CSS linear gradients to render direct filling cylinder dots on active nodes
       const html = `
         <div class="flex items-center justify-center transition-transform duration-300">
           <div class="rounded-full border-2 border-white shadow-md transition-all duration-300 ${
             inSunNow 
-              ? 'w-5 h-5 bg-[#cf5a47] ring-4 ring-[#cf5a47]/20 scale-110' 
+              ? 'w-[22px] h-[22px] ring-4 ring-[#cf5a47]/10 scale-110' 
               : 'w-3 h-3 bg-[#eab88d] opacity-55'
-          }"></div>
+          }" style="${inSunNow ? `background: linear-gradient(to top, #cf5a47 ${fillPercent}%, rgba(234, 184, 141, 0.3) ${fillPercent}%);` : ''}"></div>
         </div>
       `;
 
       const customIcon = L.divIcon({
         html,
         className: 'custom-venue-dot',
-        iconSize: inSunNow ? [24, 24] : [16, 16],
-        iconAnchor: inSunNow ? [12, 12] : [8, 8],
+        iconSize: inSunNow ? [26, 26] : [16, 16],
+        iconAnchor: inSunNow ? [13, 13] : [8, 8],
       });
 
       const marker = L.marker([activeLat, activeLng], { icon: customIcon })
