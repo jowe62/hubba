@@ -1,0 +1,29 @@
+[
+  {
+    "id": "brewers-tredje",
+    "name": "Brewers Beer Bar (Tredje Lång)",
+    "address": "Tredje Långgatan 8, 413 03 Göteborg",
+    "lat": 57.699741,
+    "lng": 11.948283,
+    "hasOutdoor": true,
+    "tags": ["Bar", "Pizza", "Beer"]
+  },
+  {
+    "id": "kino-linne",
+    "name": "Kino",
+    "address": "Linnégatan 21, 413 04 Göteborg",
+    "lat": 57.698322,
+    "lng": 11.951566,
+    "hasOutdoor": true,
+    "tags": ["Restaurant", "Café", "Vegetarian"]
+  },
+  {
+    "id": "lagerhuset",
+    "name": "Lagerhuset",
+    "address": "Heurlins Plats 1, 413 01 Göteborg",
+    "lat": 57.701123,
+    "lng": 11.954200,
+    "hasOutdoor": true,
+    "tags": ["Café", "Bar"]
+  }
+]

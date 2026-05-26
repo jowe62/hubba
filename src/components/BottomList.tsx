@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Venue } from '../types';
 import { calculateSunDetails } from '../utils/sunUtils';
 
@@ -25,7 +25,7 @@ export const BottomList: React.FC<BottomListProps> = ({
     .map((v) => {
       const activeLat = v.outdoorPoint?.lat ?? v.lat;
       const activeLng = v.outdoorPoint?.lng ?? v.lng;
-      const sun = calculateSunDetails(activeLat, activeLng, evaluatedTime);
+      const sun = calculateSunDetails(activeLat, activeLng, evaluatedTime, v.horizonMask);
       return { venue: v, sun };
     })
     .sort((a, b) => {

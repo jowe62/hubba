@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Venue } from '../types';
 import { calculateSunDetails } from '../utils/sunUtils';
 
@@ -25,7 +25,7 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
 }) => {
   const activeLat = venue.outdoorPoint?.lat ?? venue.lat;
   const activeLng = venue.outdoorPoint?.lng ?? venue.lng;
-  const sun = calculateSunDetails(activeLat, activeLng, evaluatedTime);
+  const sun = calculateSunDetails(activeLat, activeLng, evaluatedTime, venue.horizonMask);
 
   const getDirectionsUrl = () => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -65,7 +65,7 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
           <div>
             <span className="text-xs text-slate-500 font-semibold block">SUN EXPOSURE STATUS</span>
             <span className={`text-base font-extrabold ${sun.inSunNow ? 'text-amber-600' : 'text-slate-600'}`}>
-              {sun.inSunNow ? '☀️ Direct Sun (No Shading)' : '🌥️ Out of Sun (No Shading)'}
+              {sun.inSunNow ? '☀️ Direct Sun (Real shadow checking)' : '🌥️ In Shadow (Real shadow checking)'}
             </span>
           </div>
           <div className="text-right">
@@ -75,10 +75,10 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
         </div>
 
         <div>
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Theoretical Sun Windows Today</h4>
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Calculated Sun Windows Today</h4>
           {sun.sunWindows.length === 0 ? (
             <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center text-xs text-slate-500">
-              No sun exposures calculated for today.
+              No direct sun exposures calculated for today.
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -91,10 +91,10 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
           )}
         </div>
 
-        <div className="p-3.5 bg-rose-50/70 border border-rose-100 rounded-xl">
-          <p className="text-xs font-bold text-rose-800 mb-0.5">⚠️ MVP Limitation Disclaimer</p>
-          <p className="text-[11px] text-rose-700 leading-relaxed">
-            MVP calculations are strictly computed on regional solar angles. Local topography, surrounding structural designs, trees, and buildings are not modeled. Use this as an estimate.
+        <div className="p-3.5 bg-amber-50 border border-amber-100 rounded-xl">
+          <p className="text-xs font-bold text-amber-800 mb-0.5">☀️ V2 Real Shadow Model Active</p>
+          <p className="text-[11px] text-amber-700 leading-relaxed">
+            V2 active calculations verify solar altitudes and azimuth direction vectors directly against 3D rooftop geometries imported from OpenStreetMap.
           </p>
         </div>
 

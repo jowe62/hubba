@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Venue } from '../types';
@@ -72,7 +72,7 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     venues.forEach((venue) => {
       const activeLat = venue.outdoorPoint?.lat ?? venue.lat;
       const activeLng = venue.outdoorPoint?.lng ?? venue.lng;
-      const { inSunNow } = calculateSunDetails(activeLat, activeLng, evaluatedTime);
+      const { inSunNow } = calculateSunDetails(activeLat, activeLng, evaluatedTime, venue.horizonMask);
 
       const html = `
         <div class="flex items-center justify-center transition-all duration-300">

@@ -1,4 +1,4 @@
-﻿export interface OutdoorPoint {
+export interface OutdoorPoint {
   lat: number;
   lng: number;
 }
@@ -13,6 +13,7 @@ export interface Venue {
   tags: string[];
   notes?: string;
   outdoorPoint?: OutdoorPoint;
+  horizonMask?: number[]; // Added in V2
 }
 
 export interface SunWindow {

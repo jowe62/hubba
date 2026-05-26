@@ -1,5 +1,5 @@
-﻿import { useState, useEffect, useMemo } from 'react';
-import { GOT_VENUES_SEED } from './data/venues';
+import { useState, useEffect, useMemo } from 'react';
+import processedVenues from './data/processed_venues.json';
 import { Venue } from './types';
 import { calculateSunDetails } from './utils/sunUtils';
 import { HubbaMap } from './components/HubbaMap';
@@ -34,6 +34,7 @@ export default function App() {
     return d;
   }, [timeState.hour, timeState.min]);
 
+  // Here is the initialization useEffect updated to read from processed_venues.json
   useEffect(() => {
     const savedFavs = localStorage.getItem('hubba_favs');
     if (savedFavs) {
@@ -43,7 +44,7 @@ export default function App() {
     const savedAdjustments = localStorage.getItem('hubba_adjustments');
     const adjustments = savedAdjustments ? JSON.parse(savedAdjustments) : {};
 
-    const merged = GOT_VENUES_SEED.map((v) => {
+    const merged = (processedVenues as Venue[]).map((v) => {
       if (adjustments[v.id]) {
         return { ...v, outdoorPoint: adjustments[v.id] };
       }
@@ -103,7 +104,7 @@ export default function App() {
 
       const activeLat = v.outdoorPoint?.lat ?? v.lat;
       const activeLng = v.outdoorPoint?.lng ?? v.lng;
-      const { totalSunMinutes } = calculateSunDetails(activeLat, activeLng, evaluatedTime);
+      const { totalSunMinutes } = calculateSunDetails(activeLat, activeLng, evaluatedTime, v.horizonMask);
       if (totalSunMinutes < activeFilters.minHours * 60) return false;
 
       return true;
