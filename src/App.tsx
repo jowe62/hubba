@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import processedVenues from './data/processed_venues.json';
-import { Venue } from './types';
+import { Venue, Report, OutdoorPoint } from './types';
 import { calculateSunDetails } from './utils/sunUtils';
 import { HubbaMap } from './components/HubbaMap';
 import { UnifiedBottomPanel } from './components/UnifiedBottomPanel';
@@ -57,6 +57,12 @@ export default function App() {
   const [targetCenter, setTargetCenter] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [activeDistrict, setActiveDistrict] = useState<string | null>(null);
 
+  // V3 Seating point cache coordinate mapping
+  const [originalOutdoorPoint, setOriginalOutdoorPoint] = useState<OutdoorPoint | null>(null);
+
+  // V3 Crowdsourced live reports database
+  const [reports, setReports] = useState<Report[]>([]);
+
   const evaluatedTime = useMemo(() => {
     const d = new Date();
     d.setHours(timeState.hour);
@@ -69,6 +75,19 @@ export default function App() {
     const savedFavs = localStorage.getItem('habba_favs');
     if (savedFavs) {
       setFavorites(JSON.parse(savedFavs));
+    }
+
+    // Initialize unique anonymized device ID
+    let deviceId = localStorage.getItem('habba_device_id');
+    if (!deviceId) {
+      deviceId = 'device_' + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('habba_device_id', deviceId);
+    }
+
+    // Initialize local reports database
+    const savedReports = localStorage.getItem('habba_reports');
+    if (savedReports) {
+      setReports(JSON.parse(savedReports));
     }
 
     const savedAdjustments = localStorage.getItem('habba_adjustments');
@@ -173,18 +192,46 @@ export default function App() {
     localStorage.setItem('habba_favs', JSON.stringify(next));
   };
 
+  // Seating coordinates adjustments handler
   const handleUpdateOutdoorPoint = (id: string, lat: number, lng: number) => {
-    const savedAdjustments = localStorage.getItem('habba_adjustments');
-    const adjustments = savedAdjustments ? JSON.parse(savedAdjustments) : {};
-
-    adjustments[id] = { lat, lng };
-    localStorage.setItem('habba_adjustments', JSON.stringify(adjustments));
-
     setVenues((prev) =>
       prev.map((v) => (v.id === id ? { ...v, outdoorPoint: { lat, lng } } : v))
     );
 
     setSelectedVenue((prev) => (prev && prev.id === id ? { ...prev, outdoorPoint: { lat, lng } } : prev));
+  };
+
+  const handleStartAdjustMode = () => {
+    if (selectedVenue) {
+      setOriginalOutdoorPoint(selectedVenue.outdoorPoint || null);
+    }
+    setIsAdjustingPoint(true);
+  };
+
+  const handleCancelAdjustMode = () => {
+    if (selectedVenue) {
+      const restoredPoint = originalOutdoorPoint || undefined;
+      setVenues((prev) =>
+        prev.map((v) => (v.id === selectedVenue.id ? { ...v, outdoorPoint: restoredPoint } : v))
+      );
+      setSelectedVenue((prev) => (prev && prev.id === selectedVenue.id ? { ...prev, outdoorPoint: restoredPoint } : prev));
+    }
+    setIsAdjustingPoint(false);
+    setOriginalOutdoorPoint(null);
+  };
+
+  const handleSaveAdjustMode = () => {
+    if (selectedVenue) {
+      const currentPoint = selectedVenue.outdoorPoint;
+      if (currentPoint) {
+        const savedAdjustments = localStorage.getItem('habba_adjustments');
+        const adjustments = savedAdjustments ? JSON.parse(savedAdjustments) : {};
+        adjustments[selectedVenue.id] = currentPoint;
+        localStorage.setItem('habba_adjustments', JSON.stringify(adjustments));
+      }
+    }
+    setIsAdjustingPoint(false);
+    setOriginalOutdoorPoint(null);
   };
 
   const handleResetOutdoorPoint = (id: string) => {
@@ -216,6 +263,21 @@ export default function App() {
     });
   };
 
+  // Add crowsourced report
+  const handleAddReport = (value: 'yes' | 'no') => {
+    if (!selectedVenue) return;
+    const devId = localStorage.getItem('habba_device_id') || 'anon';
+    const newReport: Report = {
+      timestamp: Date.now(),
+      venueId: selectedVenue.id,
+      deviceId: devId,
+      value
+    };
+    const updated = [...reports, newReport];
+    setReports(updated);
+    localStorage.setItem('habba_reports', JSON.stringify(updated));
+  };
+
   const handleClearFilters = () => {
     setActiveFilters({
       tags: [],
@@ -228,7 +290,7 @@ export default function App() {
   return (
     <div className="relative w-screen h-[100dvh] flex flex-col overflow-hidden bg-[#faf8f5] font-sans antialiased text-slate-800">
       
-      {/* Search Header (Overcast Banner warning completely removed) */}
+      {/* Search Header and filters (Overcast Alert Banner completely removed) */}
       <div className="absolute top-4 left-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
         <div className="w-full pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-[#eebd8d]/30 p-2.5 flex items-center justify-between gap-2">
           
@@ -267,6 +329,16 @@ export default function App() {
         </div>
       </div>
 
+      {/* Seating Coordinate Adjustments Drag Instruction Overlay Toast */}
+      {isAdjustingPoint && (
+        <div className="absolute top-[135px] left-1/2 -translate-x-1/2 z-[1000] w-auto max-w-[90%] pointer-events-auto bg-[#350505] text-[#eebd8d] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 border border-[#eebd8d]/20 animate-bounce">
+          <span className="text-xs">📐</span>
+          <p className="text-[11px] font-bold leading-tight whitespace-nowrap">
+            Drag the blue pin to the outdoor seating area
+          </p>
+        </div>
+      )}
+
       <div className="flex-1 w-full h-full relative z-0">
         <HubbaMap
           venues={filteredVenues}
@@ -284,6 +356,7 @@ export default function App() {
         />
       </div>
 
+      {/* Floating bottom overlay section */}
       <div className="absolute bottom-0 left-0 right-0 z-[1001] flex flex-col gap-3 pointer-events-none p-4 max-w-lg mx-auto w-full">
         <div className="pointer-events-auto">
           {selectedVenue ? (
@@ -297,8 +370,16 @@ export default function App() {
               isFavorite={favorites.includes(selectedVenue.id)}
               onToggleFavorite={() => handleToggleFavorite(selectedVenue.id)}
               isAdjustingPoint={isAdjustingPoint}
-              onToggleAdjustMode={() => setIsAdjustingPoint(!isAdjustingPoint)}
+              onToggleAdjustMode={handleStartAdjustMode} // Modified to trigger initial coordinate caches
               onResetOutdoorPoint={() => handleResetOutdoorPoint(selectedVenue.id)}
+              
+              // Connecting the coordinate V3 save/cancel operation hooks
+              onCancelAdjustMode={handleCancelAdjustMode}
+              onSaveAdjustMode={handleSaveAdjustMode}
+              
+              // Connecting the V3 crowsourced reports array and handlers
+              reports={reports}
+              onAddReport={handleAddReport}
             />
           ) : (
             <UnifiedBottomPanel

@@ -13,7 +13,7 @@ export interface Venue {
   tags: string[];
   notes?: string;
   outdoorPoint?: OutdoorPoint;
-  horizonMask?: number[]; // Added in V2
+  horizonMask?: number[];
 }
 
 export interface SunWindow {
@@ -25,4 +25,12 @@ export interface SunDetails {
   inSunNow: boolean;
   sunWindows: SunWindow[];
   totalSunMinutes: number;
+}
+
+// Crowdsourced live report definition
+export interface Report {
+  timestamp: number;
+  venueId: string;
+  deviceId: string;
+  value: 'yes' | 'no';
 }

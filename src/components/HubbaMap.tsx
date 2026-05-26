@@ -66,6 +66,7 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<{ [key: string]: L.Marker | L.Layer }>({});
+  const lockedVenueMarkerRef = useRef<L.Marker | null>(null);
   const adjustmentMarkerRef = useRef<L.Marker | null>(null);
   const userLocMarkerRef = useRef<L.Marker | null>(null);
 
@@ -113,18 +114,27 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     map.setView([targetCenter.lat, targetCenter.lng], targetCenter.zoom ?? 15, { animate: true });
   }, [targetCenter]);
 
+  // Update/Draw Venue Markers
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    Object.values(markersRef.current).forEach((layer) => layer.remove());
-    markersRef.current = {};
+    // Clear previous markers
+    Object.keys(markersRef.current).forEach((key) => {
+      if (key !== 'locked-venue' && key !== 'adjustable-seating') {
+        markersRef.current[key].remove();
+        delete markersRef.current[key];
+      }
+    });
 
     if (zoomState <= 13) {
       const clusters: { [key: string]: Venue[] } = {};
       const gridSize = zoomState === 13 ? 0.007 : zoomState === 12 ? 0.014 : 0.028;
 
       venues.forEach((venue) => {
+        // Skip selected venue in adjustment mode so we don't draw its dot twice
+        if (isAdjustingPoint && selectedVenue && venue.id === selectedVenue.id) return;
+
         const lat = venue.outdoorPoint?.lat ?? venue.lat;
         const lng = venue.outdoorPoint?.lng ?? venue.lng;
         const cellX = Math.floor(lng / gridSize);
@@ -157,9 +167,11 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
             return inSunNow;
           });
 
-          // Clusters use 4th priority Deep Burgundy (#350505) and Main Red (#fc5a47) indicators
+          // Dim the clusters to 15% opacity if currently in seating adjustment mode
+          const isDimmed = isAdjustingPoint;
+
           const html = `
-            <div class="flex items-center justify-center w-11 h-11 relative">
+            <div class="flex items-center justify-center w-11 h-11 relative ${isDimmed ? 'opacity-15 pointer-events-none' : ''}">
               <div class="absolute inset-0"></div>
               <div class="w-8 h-8 bg-[#350505] text-[#eebd8d] rounded-full flex items-center justify-center text-xs font-bold shadow-md border-2 border-white relative transition-transform ${
                 anyInSun ? 'ring-4 ring-[#fc5a47]/30' : ''
@@ -188,10 +200,12 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
       });
     } else {
       venues.forEach((venue) => {
+        // Skip drawing the selected venue's normal dot if we are adjusting its coordinates
+        if (isAdjustingPoint && selectedVenue && venue.id === selectedVenue.id) return;
         renderIndividualMarker(map, venue, zoomState >= 15);
       });
     }
-  }, [venues, evaluatedTime, zoomState]);
+  }, [venues, evaluatedTime, zoomState, isAdjustingPoint]);
 
   const renderIndividualMarker = (map: L.Map, venue: Venue, showBadge: boolean) => {
     const activeLat = venue.outdoorPoint?.lat ?? venue.lat;
@@ -204,19 +218,18 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     const roundedHours = Math.round(totalSunMinutes / 60);
     const badgeText = roundedHours >= 6 ? '6h+' : `${roundedHours}h`;
 
-    // Direct sun uses Main (#fc5a47) as a cylinder fill
-    // Inactive shaded dots use a clean, semi-translucent soft Beige (#eebd8d)
+    const isDimmed = isAdjustingPoint;
+
     const html = `
-      <div class="flex items-center justify-center w-11 h-11 relative">
+      <div class="flex items-center justify-center w-11 h-11 relative ${isDimmed ? 'opacity-15 pointer-events-none' : ''}">
         <div class="absolute inset-0"></div>
-        
         <div class="rounded-full border-2 border-white shadow-md transition-all duration-300 ${
           inSunNow 
-            ? 'w-5 h-5 ring-4 ring-[#fc5a47]/10 scale-110' 
+            ? 'w-5 h-5 bg-[#fc5a47] ring-4 ring-[#fc5a47]/20 scale-110' 
             : 'w-3.5 h-3.5 bg-[#eebd8d] opacity-55'
         }" style="${inSunNow ? `background: linear-gradient(to top, #fc5a47 ${fillPercent}%, rgba(238, 189, 141, 0.3) ${fillPercent}%);` : ''}"></div>
 
-        ${showBadge ? `
+        ${showBadge && !isDimmed ? `
           <div class="absolute left-7 bg-[#faf8f5]/95 px-1.5 py-0.5 rounded-md border border-[#eebd8d]/30 shadow-sm text-[9px] font-extrabold whitespace-nowrap text-[#350505] tracking-tight">
             ${badgeText}
           </div>
@@ -251,38 +264,63 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     map.setView([targetLat, targetLng], 16, { animate: true });
   }, [selectedVenue]);
 
+  // Adjusting Seating Point (V4 Duo-Marker Setup)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
+    if (lockedVenueMarkerRef.current) {
+      lockedVenueMarkerRef.current.remove();
+      lockedVenueMarkerRef.current = null;
+    }
     if (adjustmentMarkerRef.current) {
       adjustmentMarkerRef.current.remove();
       adjustmentMarkerRef.current = null;
     }
 
     if (isAdjustingPoint && selectedVenue) {
-      const currentLat = selectedVenue.outdoorPoint?.lat ?? selectedVenue.lat;
-      const currentLng = selectedVenue.outdoorPoint?.lng ?? selectedVenue.lng;
+      const venueLat = selectedVenue.lat;
+      const venueLng = selectedVenue.lng;
+      const currentSeatingLat = selectedVenue.outdoorPoint?.lat ?? selectedVenue.lat;
+      const currentSeatingLng = selectedVenue.outdoorPoint?.lng ?? selectedVenue.lng;
 
-      const adjustIcon = L.divIcon({
+      // A. Draw Locked Venue Center Marker (slate-gray)
+      const lockedIcon = L.divIcon({
         html: `
           <div class="flex flex-col items-center">
-            <div class="bg-[#fc5a47] text-white rounded-lg px-2.5 py-1 text-[10px] font-bold shadow-md whitespace-nowrap mb-1">
-              Drag to outdoor seating
+            <div class="bg-[#94a3b8] text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap mb-1">
+              Venue Center
             </div>
-            <div class="w-7 h-7 rounded-full border-2 border-white bg-[#fc5a47] shadow-xl flex items-center justify-center text-white">
-              📍
-            </div>
+            <div class="w-3.5 h-3.5 bg-[#94a3b8] rounded-full border-2 border-white shadow-md"></div>
           </div>
         `,
-        className: 'custom-adjustment-icon',
-        iconSize: [120, 60],
-        iconAnchor: [60, 56],
+        className: 'locked-venue-marker',
+        iconSize: [80, 40],
+        iconAnchor: [40, 36],
       });
 
-      const adjMarker = L.marker([currentLat, currentLng], {
-        icon: adjustIcon,
+      lockedVenueMarkerRef.current = L.marker([venueLat, venueLng], { icon: lockedIcon })
+        .addTo(map);
+
+      // B. Draw Draggable Seating Marker (larger teal/blue #7cbec7)
+      const seatingIcon = L.divIcon({
+        html: `
+          <div class="flex flex-col items-center select-none">
+            <div class="bg-[#7cbec7] text-[#350505] text-[10px] font-extrabold px-2 py-0.5 rounded shadow-md whitespace-nowrap mb-1 ring-2 ring-[#7cbec7]/25">
+              Outdoor Seating
+            </div>
+            <div class="w-6 h-6 rounded-full border-2 border-white bg-[#7cbec7] shadow-xl flex items-center justify-center ring-4 ring-[#7cbec7]/30"></div>
+          </div>
+        `,
+        className: 'draggable-seating-marker',
+        iconSize: [120, 50],
+        iconAnchor: [60, 46],
+      });
+
+      const adjMarker = L.marker([currentSeatingLat, currentSeatingLng], {
+        icon: seatingIcon,
         draggable: true,
+        zIndexOffset: 3000
       }).addTo(map);
 
       adjMarker.on('dragend', () => {
@@ -291,10 +329,11 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
       });
 
       adjustmentMarkerRef.current = adjMarker;
+      markersRef.current['adjustable-seating'] = adjMarker;
     }
   }, [isAdjustingPoint, selectedVenue]);
 
-  // Geolocation uses Secondary/Teal (#7cbec7)
+  // Geolocation dot
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;

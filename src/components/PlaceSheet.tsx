@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Venue } from '../types';
+import { Venue, Report } from '../types';
 import { getSolarCoordinates, isPointInSun, calculateSunDetails } from '../utils/sunUtils';
 
 interface PlaceSheetProps {
@@ -11,7 +11,18 @@ interface PlaceSheetProps {
   isAdjustingPoint: boolean;
   onToggleAdjustMode: () => void;
   onResetOutdoorPoint: () => void;
+  
+  // Save/Cancel operational hooks (V3)
+  onCancelAdjustMode: () => void;
+  onSaveAdjustMode: () => void;
+
+  // Crowdsourcing (V3)
+  reports: Report[];
+  onAddReport: (value: 'yes' | 'no') => void;
 }
+
+// Config flag for pending backend suggest pipeline
+const BACKEND_ENABLED = false;
 
 export const PlaceSheet: React.FC<PlaceSheetProps> = ({
   venue,
@@ -22,11 +33,32 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
   isAdjustingPoint,
   onToggleAdjustMode,
   onResetOutdoorPoint,
+  onCancelAdjustMode,
+  onSaveAdjustMode,
+  reports,
+  onAddReport,
 }) => {
   const activeLat = venue.outdoorPoint?.lat ?? venue.lat;
   const activeLng = venue.outdoorPoint?.lng ?? venue.lng;
 
   const sun = calculateSunDetails(activeLat, activeLng, evaluatedTime, venue.horizonMask);
+
+  // 1. Calculate live consensus signal in the last 30 minutes
+  const liveSignal = useMemo(() => {
+    const halfHourAgo = Date.now() - 30 * 60 * 1000;
+    const relevant = reports.filter(r => r.venueId === venue.id && r.timestamp >= halfHourAgo);
+    
+    if (relevant.length === 0) return null;
+    
+    const yesCount = relevant.filter(r => r.value === 'yes').length;
+    const noCount = relevant.filter(r => r.value === 'no').length;
+    const majority = yesCount > noCount ? 'sunny' : 'shaded';
+    
+    return {
+      count: relevant.length,
+      majority
+    };
+  }, [reports, venue.id]);
 
   const timelineSegments = useMemo(() => {
     const segments = [];
@@ -112,6 +144,39 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
           </div>
         </div>
 
+        {/* --- CROWDSOURCED LIVE SIGNAL BLOCK (V3) --- */}
+        <div className="p-4 bg-[#eebd8d]/5 border border-[#eebd8d]/15 rounded-2xl flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Live Crowdsourced Signal</span>
+            {liveSignal ? (
+              <span className="text-xs font-extrabold text-[#fc5a47] flex items-center gap-1">
+                <span className="w-2 h-2 bg-[#fc5a47] rounded-full animate-pulse inline-block"></span>
+                Mostly {liveSignal.majority} ({liveSignal.count} vote{liveSignal.count > 1 ? 's' : ''})
+              </span>
+            ) : (
+              <span className="text-xs text-slate-400 font-semibold italic">No live reports yet</span>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between border-t border-[#eabd8d]/10 pt-2.5">
+            <span className="text-xs font-bold text-[#350505]">Is it sunny on the patio right now?</span>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => onAddReport('yes')}
+                className="px-3 py-1.5 bg-white hover:bg-emerald-50 border border-slate-200 text-emerald-700 text-xs font-bold rounded-lg transition-colors"
+              >
+                👍 Yes
+              </button>
+              <button
+                onClick={() => onAddReport('no')}
+                className="px-3 py-1.5 bg-white hover:bg-rose-50 border border-slate-200 text-rose-700 text-xs font-bold rounded-lg transition-colors"
+              >
+                👎 No
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* --- TIMELINE SECTION --- */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -131,7 +196,6 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
               ))}
             </div>
 
-            {/* Custom pointer pin styled in Main Red (#fc5a47) */}
             <div 
               className="absolute top-0 bottom-1 flex flex-col items-center transition-all duration-300 pointer-events-none"
               style={{ left: `${pointerPercent}%` }}
@@ -161,7 +225,7 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
         </div>
 
         <div className="pt-2 space-y-2">
-          {/* Primary Navigation button uses Secondary/Teal (#7cbec7) and Dark Burgundy text (#350505) */}
+          {/* Primary Action Button */}
           <a
             href={getDirectionsUrl()}
             target="_blank"
@@ -171,24 +235,47 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
             🗺️ Open in Map Navigation
           </a>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onToggleAdjustMode}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-colors ${
-                isAdjustingPoint
-                  ? 'bg-[#fc5a47] border-[#fc5a47] text-white shadow-sm'
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {isAdjustingPoint ? '💾 Save Position' : '📐 Adjust Seating Point'}
-            </button>
-            {venue.outdoorPoint && (
-              <button
-                onClick={onResetOutdoorPoint}
-                className="px-3 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold border border-red-200 rounded-xl transition-colors"
-                title="Reset seating adjustments"
-              >
-                Reset
+          {/* Draggable position editor Save/Cancel operations */}
+          <div className="flex flex-col gap-2">
+            {isAdjustingPoint ? (
+              <div className="flex gap-2 w-full">
+                <button
+                  onClick={onSaveAdjustMode}
+                  className="flex-1 py-2.5 bg-[#fc5a47] text-white rounded-xl text-xs font-bold shadow-md hover:bg-[#fc5a47]/95 transition-colors"
+                >
+                  💾 Save Position
+                </button>
+                <button
+                  onClick={onCancelAdjustMode}
+                  className="flex-1 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-colors"
+                >
+                  ✕ Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 w-full">
+                <button
+                  onClick={onToggleAdjustMode}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+                >
+                  📐 Adjust Seating Point
+                </button>
+                {venue.outdoorPoint && (
+                  <button
+                    onClick={onResetOutdoorPoint}
+                    className="px-3 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold border border-red-200 rounded-xl transition-colors"
+                    title="Reset seating adjustments"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Hidden Suggest Submission Block */}
+            {BACKEND_ENABLED && (
+              <button className="w-full py-2.5 bg-[#7cbec7]/10 border border-[#7cbec7]/25 text-[#350505] rounded-xl text-xs font-bold hover:bg-[#7cbec7]/20 transition-colors">
+                🚀 Submit to improve app
               </button>
             )}
           </div>
