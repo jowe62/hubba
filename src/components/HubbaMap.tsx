@@ -13,6 +13,7 @@ interface HubbaMapProps {
   onUpdateOutdoorPoint: (id: string, lat: number, lng: number) => void;
   userLocation: { lat: number; lng: number } | null;
   onBoundsChange: (bounds: L.LatLngBounds) => void;
+  targetCenter: { lat: number; lng: number; zoom?: number } | null; // Added in V3
 }
 
 export const HubbaMap: React.FC<HubbaMapProps> = ({
@@ -24,6 +25,7 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
   onUpdateOutdoorPoint,
   userLocation,
   onBoundsChange,
+  targetCenter,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -31,6 +33,7 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
   const adjustmentMarkerRef = useRef<L.Marker | null>(null);
   const userLocMarkerRef = useRef<L.Marker | null>(null);
 
+  // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -62,6 +65,14 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     };
   }, []);
 
+  // Fly-to listener for district chips jumping
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !targetCenter) return;
+    map.setView([targetCenter.lat, targetCenter.lng], targetCenter.zoom ?? 15, { animate: true });
+  }, [targetCenter]);
+
+  // Update/Draw Venue Markers
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -105,6 +116,7 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     });
   }, [venues, evaluatedTime]);
 
+  // Handle Selected Venue camera panning
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !selectedVenue) return;
@@ -113,6 +125,7 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     map.setView([targetLat, targetLng], 16, { animate: true });
   }, [selectedVenue]);
 
+  // Adjusting Seating Point (Drag and Drop Marker interface)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -156,6 +169,7 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     }
   }, [isAdjustingPoint, selectedVenue]);
 
+  // User Live Geolocation Marker
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
