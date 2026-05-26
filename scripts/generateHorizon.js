@@ -1,6 +1,23 @@
 import fs from 'fs';
 import path from 'path';
 
+function estimateBuildingHeight(tags) {
+  if (tags.height) {
+    return parseFloat(tags.height);
+  }
+  if (tags['building:levels']) {
+    const levels = parseFloat(tags['building:levels']);
+    return levels * 3.1; // 3.1m per level
+  }
+  const type = tags.building || 'yes';
+  if (type === 'garage' || type === 'shed' || type === 'carport') return 3.0;
+  if (type === 'house' || type === 'detached' || type === 'semidetached') return 8.0;
+  if (type === 'apartments' || type === 'residential') return 16.0;
+  if (type === 'commercial' || type === 'office' || type === 'retail') return 18.0;
+  if (type === 'industrial' || type === 'warehouse') return 12.0;
+  return 14.0; // General urban fallback
+}
+
 function getDistanceAndAzimuth(lat1, lon1, lat2, lon2) {
   const rad = Math.PI / 180;
   const latMean = ((lat1 + lat2) / 2) * rad;
@@ -53,7 +70,7 @@ async function fetchSurroundingBuildings(lat, lng, radius = 150) {
 }
 
 function computeHorizonMask(venueLat, venueLng, osmData) {
-  const mask = new Array(36).fill(0);
+  const mask = new Array(72).fill(0); // Upgraded to 72 bins (5-degree increments)
   const nodes = {};
 
   osmData.elements.forEach(el => {
@@ -64,13 +81,7 @@ function computeHorizonMask(venueLat, venueLng, osmData) {
 
   osmData.elements.forEach(el => {
     if (el.type === 'way' && el.nodes && el.tags) {
-      let height = 15;
-      if (el.tags.height) {
-        height = parseFloat(el.tags.height);
-      } else if (el.tags['building:levels']) {
-        const levels = parseFloat(el.tags['building:levels']);
-        height = levels * 3.5;
-      }
+      const height = estimateBuildingHeight(el.tags);
 
       for (let i = 0; i < el.nodes.length - 1; i++) {
         const nodeA = nodes[el.nodes[i]];
@@ -89,7 +100,7 @@ function computeHorizonMask(venueLat, venueLng, osmData) {
           if (distance < 3) continue;
 
           const elevation = Math.atan2(height, distance) * (180 / Math.PI);
-          const binIndex = Math.round(azimuth / 10) % 36;
+          const binIndex = Math.round(azimuth / 5) % 72; // 5-degree steps
           
           if (elevation > mask[binIndex]) {
             mask[binIndex] = Math.round(elevation);
@@ -114,7 +125,6 @@ async function run() {
   const raw = fs.readFileSync(inputPath, 'utf8');
   const venues = JSON.parse(raw);
 
-  // Load existing compiled profiles to use as a local cache
   const cachedMap = {};
   if (fs.existsSync(outputPath)) {
     try {
@@ -135,14 +145,13 @@ async function run() {
   for (const venue of venues) {
     const cached = cachedMap[venue.id];
     
-    // Check if we can reuse the cached horizonMask
     const hasUnchangedLocation = cached && 
       cached.lat === venue.lat && 
       cached.lng === venue.lng &&
       JSON.stringify(cached.outdoorPoint) === JSON.stringify(venue.outdoorPoint);
 
-    if (hasUnchangedLocation && cached.horizonMask && cached.horizonMask.length === 36) {
-      // Copy existing mask immediately
+    // Skip recalculation if location is identical AND contains the upgraded 72-bin mask
+    if (hasUnchangedLocation && cached.horizonMask && cached.horizonMask.length === 72) {
       processed.push({
         ...venue,
         horizonMask: cached.horizonMask
@@ -150,7 +159,7 @@ async function run() {
       continue;
     }
 
-    console.log(`+ Analyzing: ${venue.name} (Location added/modified, querying Overpass...)`);
+    console.log(`+ Analyzing: ${venue.name} (Location added/modified or upgraded, querying Overpass...)`);
     try {
       const lat = venue.outdoorPoint?.lat ?? venue.lat;
       const lng = venue.outdoorPoint?.lng ?? venue.lng;
@@ -166,7 +175,7 @@ async function run() {
       await new Promise(resolve => setTimeout(resolve, 1500));
     } catch (e) {
       console.error(`Failed to process ${venue.name}:`, e.message);
-      processed.push({ ...venue, horizonMask: new Array(36).fill(0) });
+      processed.push({ ...venue, horizonMask: new Array(72).fill(0) });
     }
   }
 
