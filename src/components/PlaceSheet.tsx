@@ -16,7 +16,7 @@ interface PlaceSheetProps {
   onSaveAdjustMode: () => void;
 
   reports: Report[];
-  onAddReport: (value: 'yes' | 'no') => boolean; // Updated to return success status
+  onAddReport: (value: 'yes' | 'no') => boolean;
 }
 
 const BACKEND_ENABLED = false;
@@ -40,17 +40,14 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
 
   const sun = calculateSunDetails(activeLat, activeLng, evaluatedTime, venue.horizonMask);
 
-  // 1-second button lock feedback
   const [isVoteLocked, setIsVoteLocked] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  // Find user's previous active vote for this venue to prevent spamming
   const userVote = useMemo(() => {
     const devId = localStorage.getItem('habba_device_id') || 'anon';
     return reports.find(r => r.venueId === venue.id && r.deviceId === devId) || null;
   }, [reports, venue.id]);
 
-  // Calculate live consensus signals inside the 30-minute window
   const liveSignal = useMemo(() => {
     const halfHourAgo = Date.now() - 30 * 60 * 1000;
     const relevant = reports.filter(r => r.venueId === venue.id && r.timestamp >= halfHourAgo);
@@ -110,7 +107,7 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
       setTimeout(() => {
         setFeedbackMsg(null);
         setIsVoteLocked(false);
-      }, 1000); // 1-second button lock release
+      }, 1000);
     }
   };
 
@@ -155,7 +152,7 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 bg-[#eabd8d]/10 border border-[#eabd8d]/20 rounded-2xl">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Currently</span>
-            <span className={`text-sm font-extrabold block mt-0.5 ${sun.inSunNow ? 'text-[#cf5a47]' : 'text-slate-500'}`}>
+            <span className={`text-sm font-extrabold block mt-0.5 ${sun.inSunNow ? 'text-[#fc5a47]' : 'text-slate-500'}`}>
               {sun.inSunNow ? '☀️ Sunny Patio' : '🌥️ In Shade'}
             </span>
           </div>
@@ -172,7 +169,7 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
             {feedbackMsg ? (
               <span className="text-xs font-extrabold text-emerald-600 animate-pulse">✓ {feedbackMsg}</span>
             ) : liveSignal ? (
-              <span className="text-xs font-extrabold text-[#cf5a47] flex items-center gap-1">
+              <span className="text-xs font-extrabold text-[#fc5a47] flex items-center gap-1">
                 <span className="w-2 h-2 bg-[#fc5a47] rounded-full animate-pulse inline-block"></span>
                 Mostly {liveSignal.majority} ({liveSignal.count} vote{liveSignal.count > 1 ? 's' : ''})
               </span>
@@ -215,7 +212,7 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
           </div>
         </div>
 
-        {/* --- TIMELINE SECTION --- */}
+        {/* --- TIMELINE SECTION (Legend/Alerts completely hidden) --- */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Day Sun-Profile (08:00 - 22:00)</span>
@@ -234,6 +231,7 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
               ))}
             </div>
 
+            {/* Custom pointer pin styled back in Main Red (#fc5a47) */}
             <div 
               className="absolute top-0 bottom-1 flex flex-col items-center transition-all duration-300 pointer-events-none"
               style={{ left: `${pointerPercent}%` }}
@@ -263,11 +261,12 @@ export const PlaceSheet: React.FC<PlaceSheetProps> = ({
         </div>
 
         <div className="pt-2 space-y-2">
+          {/* Primary Action Button now styled back to Main Red (#fc5a47) with white text */}
           <a
             href={getDirectionsUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full py-3 bg-[#7cbec7] hover:bg-[#7cbec7]/90 text-[#350505] rounded-xl text-center text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md"
+            className="w-full py-3 bg-[#fc5a47] hover:bg-[#fc5a47]/90 text-white rounded-xl text-center text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md"
           >
             🗺️ Open in Map Navigation
           </a>
