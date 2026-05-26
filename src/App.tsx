@@ -226,14 +226,13 @@ export default function App() {
   };
 
   return (
-    <div className="relative w-screen h-[100dvh] flex flex-col overflow-hidden bg-slate-50 font-sans antialiased text-slate-800">
+    <div className="relative w-screen h-[100dvh] flex flex-col overflow-hidden bg-[#faf8f5] font-sans antialiased text-slate-800">
       
-      {/* --- RECONSTITUTED SINGLE-ROW HEADER BAR (Maximum Map Visibility) --- */}
+      {/* Search Header (Overcast Banner warning completely removed) */}
       <div className="absolute top-4 left-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
-        <div className="w-full pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-[#eab88d]/30 p-2.5 flex items-center justify-between gap-2">
+        <div className="w-full pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-[#eebd8d]/30 p-2.5 flex items-center justify-between gap-2">
           
-          {/* Input field */}
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <svg className="w-5 h-5 text-slate-400 flex-shrink-0 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
@@ -246,21 +245,20 @@ export default function App() {
             />
           </div>
 
-          {/* Combined Filters Button & Weather HUD */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <button
               onClick={() => setShowFilters(true)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${
                 activeFilters.tags.length > 0 || activeFilters.onlyFavs || activeFilters.minHours > 1 || activeDistrict
-                  ? 'bg-[#cf5a47] border-[#cf5a47] text-white shadow-sm'
-                  : 'bg-white border-[#eab88d]/30 text-[#350505] hover:bg-[#eab88d]/10'
+                  ? 'bg-[#fc5a47] border-[#fc5a47] text-white shadow-sm'
+                  : 'bg-white border-[#eebd8d]/30 text-[#350505] hover:bg-[#eebd8d]/10'
               }`}
             >
               Filters {(activeFilters.tags.length > 0 || activeFilters.onlyFavs || activeFilters.minHours > 1 || activeDistrict) && '●'}
             </button>
 
             {weather && (
-              <div className="text-xs font-bold text-[#350505] bg-[#eab88d]/10 border border-[#eab88d]/20 px-2 py-1.5 rounded-xl flex items-center gap-1 shadow-sm" title={weather.description}>
+              <div className="text-xs font-bold text-[#350505] bg-[#eebd8d]/10 border border-[#eebd8d]/20 px-2 py-1.5 rounded-xl flex items-center gap-1 shadow-sm" title={weather.description}>
                 <span>{weather.icon}</span>
                 <span>{weather.temp}°C</span>
               </div>
@@ -345,8 +343,6 @@ export default function App() {
                 setActiveFilters((prev) => ({ ...prev, onlyFavs: !prev.onlyFavs }));
               }}
               onClear={handleClearFilters}
-              
-              // Connecting the quick-jump districts array and handlers into the modal
               districts={DISTRICTS}
               activeDistrict={activeDistrict}
               onSelectDistrict={(name, lat, lng) => {

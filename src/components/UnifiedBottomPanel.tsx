@@ -48,7 +48,6 @@ export const UnifiedBottomPanel: React.FC<UnifiedBottomPanelProps> = ({
     { label: 'Evening', h: 20, m: 0 },
   ];
 
-  // Dynamic context-sensitive sorting algorithm based on active schedule state
   const processedList = venuesInView
     .map((v) => {
       const activeLat = v.outdoorPoint?.lat ?? v.lat;
@@ -58,13 +57,11 @@ export const UnifiedBottomPanel: React.FC<UnifiedBottomPanelProps> = ({
     })
     .sort((a, b) => {
       if (isLiveNow) {
-        // Now-mode: Sort by inSunNow (desc), then totalSunMinutes (desc)
         if (a.sun.inSunNow !== b.sun.inSunNow) {
           return a.sun.inSunNow ? -1 : 1;
         }
         return b.sun.totalSunMinutes - a.sun.totalSunMinutes;
       } else {
-        // Plan-mode: Sort by totalSunMinutes (desc), then inSunNow (desc)
         if (b.sun.totalSunMinutes !== a.sun.totalSunMinutes) {
           return b.sun.totalSunMinutes - a.sun.totalSunMinutes;
         }
@@ -77,7 +74,7 @@ export const UnifiedBottomPanel: React.FC<UnifiedBottomPanelProps> = ({
     .slice(0, 8);
 
   return (
-    <div className="bg-white/95 backdrop-blur-md rounded-t-[2.5rem] shadow-[0_-12px_40px_-15px_rgba(0,0,0,0.15)] border-t border-slate-100 flex flex-col max-h-[80vh] w-full transition-all duration-300">
+    <div className="bg-[#faf8f5]/95 backdrop-blur-md rounded-t-[2.5rem] shadow-[0_-12px_40px_-15px_rgba(0,0,0,0.15)] border-t border-[#eebd8d]/30 flex flex-col max-h-[80vh] w-full transition-all duration-300">
       <div 
         onClick={() => setIsListOpen(!isListOpen)} 
         className="w-full pt-3 pb-1 flex flex-col items-center justify-center cursor-pointer select-none"
@@ -109,7 +106,7 @@ export const UnifiedBottomPanel: React.FC<UnifiedBottomPanelProps> = ({
             step={10}
             value={sliderVal}
             onChange={handleSliderChange}
-            className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#cf5a47] focus:outline-none"
+            className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#fc5a47] focus:outline-none"
           />
           <div className="flex justify-between text-[9px] font-bold text-slate-400 mt-1 px-1">
             <span>08:00</span>
@@ -125,7 +122,7 @@ export const UnifiedBottomPanel: React.FC<UnifiedBottomPanelProps> = ({
             onClick={onSetLiveNow}
             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
               isLiveNow
-                ? 'bg-[#7cbcc7]/15 border-[#7cbcc7] text-[#350505] shadow-sm'
+                ? 'bg-[#7cbec7]/15 border-[#7cbec7] text-[#350505] shadow-sm'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -139,7 +136,7 @@ export const UnifiedBottomPanel: React.FC<UnifiedBottomPanelProps> = ({
                 onClick={() => onTimeChange(preset.h, preset.m)}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
                   isActive
-                    ? 'bg-[#cf5a47] border-[#cf5a47] text-white shadow-sm'
+                    ? 'bg-[#fc5a47] border-[#fc5a47] text-white shadow-sm'
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
@@ -206,7 +203,7 @@ export const UnifiedBottomPanel: React.FC<UnifiedBottomPanelProps> = ({
 
                 <div className="text-right flex-shrink-0 flex flex-col items-end">
                   {sun.inSunNow ? (
-                    <span className="text-[10px] font-extrabold text-[#cf5a47] flex items-center gap-0.5 bg-[#cf5a47]/5 px-2 py-0.5 rounded-full border border-[#cf5a47]/20">
+                    <span className="text-[10px] font-extrabold text-[#fc5a47] flex items-center gap-0.5 bg-[#fc5a47]/5 px-2 py-0.5 rounded-full border border-[#fc5a47]/20">
                       ☀️ Sun now
                     </span>
                   ) : (

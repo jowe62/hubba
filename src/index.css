@@ -8,7 +8,7 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #fcf9f6; /* Set to soft warm sand tint */
+  background-color: #faf8f5; /* Off-white primary canvas */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -23,7 +23,7 @@ html, body, #root {
 }
 
 .leaflet-container {
-  background: #fcf9f6 !important;
+  background: #faf8f5 !important;
 }
 .leaflet-pane {
   z-index: 1 !important;
@@ -32,37 +32,37 @@ html, body, #root {
   z-index: 100 !important;
 }
 
-/* Custom Terracotta (#cf5a47) Slider Thumb handle */
+/* Vibrant Red (#fc5a47) Slider handle */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #cf5a47;
-  border: 3px solid #ffffff;
-  box-shadow: 0 4px 10px rgba(207, 90, 71, 0.4);
+  background: #fc5a47;
+  border: 3px solid #faf8f5;
+  box-shadow: 0 4px 10px rgba(252, 90, 71, 0.4);
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.15);
-  box-shadow: 0 4px 14px rgba(207, 90, 71, 0.6);
+  box-shadow: 0 4px 14px rgba(252, 90, 71, 0.6);
 }
 
 input[type="range"]::-moz-range-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #cf5a47;
-  border: 3px solid #ffffff;
-  box-shadow: 0 4px 10px rgba(207, 90, 71, 0.4);
+  background: #fc5a47;
+  border: 3px solid #faf8f5;
+  box-shadow: 0 4px 10px rgba(252, 90, 71, 0.4);
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
 input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.15);
-  box-shadow: 0 4px 14px rgba(207, 90, 71, 0.6);
+  box-shadow: 0 4px 14px rgba(252, 90, 71, 0.6);
 }

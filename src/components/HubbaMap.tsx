@@ -16,6 +16,42 @@ interface HubbaMapProps {
   targetCenter: { lat: number; lng: number; zoom?: number } | null;
 }
 
+function getRemainingSunHours(venue: Venue, evaluatedTime: Date): number {
+  const activeLat = venue.outdoorPoint?.lat ?? venue.lat;
+  const activeLng = venue.outdoorPoint?.lng ?? venue.lng;
+  
+  const baseDate = new Date(evaluatedTime);
+  const { altitude: currAlt, azimuth: currAz } = getSolarCoordinates(activeLat, activeLng, baseDate);
+  const inSunNow = isPointInSun(currAlt, currAz, venue.horizonMask);
+  
+  if (!inSunNow) return 0;
+  
+  let consecutiveMins = 0;
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+  const day = baseDate.getDate();
+  const currentHour = baseDate.getHours();
+  const currentMin = baseDate.getMinutes();
+  
+  const startMins = currentHour * 60 + currentMin;
+  const endMins = 22 * 60;
+  
+  for (let mins = startMins; mins <= endMins; mins += 10) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    const stepTime = new Date(year, month, day, h, m, 0);
+    const { altitude, azimuth } = getSolarCoordinates(activeLat, activeLng, stepTime);
+    
+    if (isPointInSun(altitude, azimuth, venue.horizonMask)) {
+      consecutiveMins += 10;
+    } else {
+      break;
+    }
+  }
+  
+  return consecutiveMins / 60;
+}
+
 export const HubbaMap: React.FC<HubbaMapProps> = ({
   venues,
   selectedVenue,
@@ -33,10 +69,8 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
   const adjustmentMarkerRef = useRef<L.Marker | null>(null);
   const userLocMarkerRef = useRef<L.Marker | null>(null);
 
-  // Active zoom state tracker to drive progressive visual disclosure
   const [zoomState, setZoomState] = useState(14);
 
-  // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -73,26 +107,21 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     };
   }, []);
 
-  // Fly-to listener for district chips jumping
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !targetCenter) return;
     map.setView([targetCenter.lat, targetCenter.lng], targetCenter.zoom ?? 15, { animate: true });
   }, [targetCenter]);
 
-  // Update/Draw Venue Markers and Custom Clustering
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // Clear previous markers and layers
     Object.values(markersRef.current).forEach((layer) => layer.remove());
     markersRef.current = {};
 
-    // A. Lightweight, reactive grid-clustering system (Zoom <= 13)
     if (zoomState <= 13) {
       const clusters: { [key: string]: Venue[] } = {};
-      // Set grid boundary scale based on zoom density
       const gridSize = zoomState === 13 ? 0.007 : zoomState === 12 ? 0.014 : 0.028;
 
       venues.forEach((venue) => {
@@ -110,10 +139,8 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
 
       Object.entries(clusters).forEach(([key, list]) => {
         if (list.length === 1) {
-          // Render individual marker with no progressive badge
           renderIndividualMarker(map, list[0], false);
         } else {
-          // Calculate centroid center
           let sumLat = 0;
           let sumLng = 0;
           list.forEach(v => {
@@ -123,7 +150,6 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
           const avgLat = sumLat / list.length;
           const avgLng = sumLng / list.length;
 
-          // Check if any patio inside is currently in the sun
           const anyInSun = list.some(v => {
             const activeLat = v.outdoorPoint?.lat ?? v.lat;
             const activeLng = v.outdoorPoint?.lng ?? v.lng;
@@ -131,14 +157,15 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
             return inSunNow;
           });
 
+          // Clusters use 4th priority Deep Burgundy (#350505) and Main Red (#fc5a47) indicators
           const html = `
             <div class="flex items-center justify-center w-11 h-11 relative">
-              <div class="absolute inset-0"></div> <!-- 44px tap target -->
-              <div class="w-8 h-8 bg-[#350505] text-[#eab88d] rounded-full flex items-center justify-center text-xs font-bold shadow-md border-2 border-white relative transition-transform ${
-                anyInSun ? 'ring-4 ring-[#cf5a47]/30' : ''
+              <div class="absolute inset-0"></div>
+              <div class="w-8 h-8 bg-[#350505] text-[#eebd8d] rounded-full flex items-center justify-center text-xs font-bold shadow-md border-2 border-white relative transition-transform ${
+                anyInSun ? 'ring-4 ring-[#fc5a47]/30' : ''
               }">
                 ${list.length}
-                ${anyInSun ? `<div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#cf5a47] rounded-full border border-white shadow-sm"></div>` : ''}
+                ${anyInSun ? `<div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#fc5a47] rounded-full border border-white shadow-sm"></div>` : ''}
               </div>
             </div>
           `;
@@ -160,37 +187,37 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
         }
       });
     } else {
-      // B. Individual rendering mode (Zoom >= 14)
       venues.forEach((venue) => {
         renderIndividualMarker(map, venue, zoomState >= 15);
       });
     }
   }, [venues, evaluatedTime, zoomState]);
 
-  // Helper function to render a clean, high-contrast, dual-dimension marker
   const renderIndividualMarker = (map: L.Map, venue: Venue, showBadge: boolean) => {
     const activeLat = venue.outdoorPoint?.lat ?? venue.lat;
     const activeLng = venue.outdoorPoint?.lng ?? venue.lng;
     const { inSunNow, totalSunMinutes } = calculateSunDetails(activeLat, activeLng, evaluatedTime, venue.horizonMask);
 
-    // Compute sun-hours badge text (Capped at 6h+)
+    const remainingHours = getRemainingSunHours(venue, evaluatedTime);
+    const fillPercent = Math.min(100, Math.round((remainingHours / 4) * 100));
+
     const roundedHours = Math.round(totalSunMinutes / 60);
     const badgeText = roundedHours >= 6 ? '6h+' : `${roundedHours}h`;
 
-    // Visual Hierarchy: Sun = high-contrast terracotta (#cf5a47); Shade = neutral gray (#94a3b8)
+    // Direct sun uses Main (#fc5a47) as a cylinder fill
+    // Inactive shaded dots use a clean, semi-translucent soft Beige (#eebd8d)
     const html = `
       <div class="flex items-center justify-center w-11 h-11 relative">
-        <div class="absolute inset-0"></div> <!-- Guaranteed 44px transparent tap target -->
+        <div class="absolute inset-0"></div>
         
         <div class="rounded-full border-2 border-white shadow-md transition-all duration-300 ${
           inSunNow 
-            ? 'w-5 h-5 bg-[#cf5a47] ring-4 ring-[#cf5a47]/20 scale-110' 
-            : 'w-3.5 h-3.5 bg-[#94a3b8] opacity-70'
-        }"></div>
+            ? 'w-5 h-5 ring-4 ring-[#fc5a47]/10 scale-110' 
+            : 'w-3.5 h-3.5 bg-[#eebd8d] opacity-55'
+        }" style="${inSunNow ? `background: linear-gradient(to top, #fc5a47 ${fillPercent}%, rgba(238, 189, 141, 0.3) ${fillPercent}%);` : ''}"></div>
 
-        <!-- Progressive disclosure hours badge (Visible at Zoom >= 15) -->
         ${showBadge ? `
-          <div class="absolute left-7 bg-white/95 px-1.5 py-0.5 rounded-md border border-slate-100 shadow-sm text-[9px] font-extrabold whitespace-nowrap text-[#350505] tracking-tight">
+          <div class="absolute left-7 bg-[#faf8f5]/95 px-1.5 py-0.5 rounded-md border border-[#eebd8d]/30 shadow-sm text-[9px] font-extrabold whitespace-nowrap text-[#350505] tracking-tight">
             ${badgeText}
           </div>
         ` : ''}
@@ -206,7 +233,7 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
 
     const marker = L.marker([activeLat, activeLng], { 
       icon: customIcon,
-      zIndexOffset: inSunNow ? 1000 : 0 // Sun markers drawn on top of shade markers
+      zIndexOffset: inSunNow ? 1000 : 0
     })
       .addTo(map)
       .on('click', () => {
@@ -240,10 +267,10 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
       const adjustIcon = L.divIcon({
         html: `
           <div class="flex flex-col items-center">
-            <div class="bg-[#cf5a47] text-white rounded-lg px-2.5 py-1 text-[10px] font-bold shadow-md whitespace-nowrap mb-1">
+            <div class="bg-[#fc5a47] text-white rounded-lg px-2.5 py-1 text-[10px] font-bold shadow-md whitespace-nowrap mb-1">
               Drag to outdoor seating
             </div>
-            <div class="w-7 h-7 rounded-full border-2 border-white bg-[#cf5a47] shadow-xl flex items-center justify-center text-white">
+            <div class="w-7 h-7 rounded-full border-2 border-white bg-[#fc5a47] shadow-xl flex items-center justify-center text-white">
               📍
             </div>
           </div>
@@ -267,7 +294,7 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
     }
   }, [isAdjustingPoint, selectedVenue]);
 
-  // Geolocation dot
+  // Geolocation uses Secondary/Teal (#7cbec7)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -281,8 +308,8 @@ export const HubbaMap: React.FC<HubbaMapProps> = ({
       const userIcon = L.divIcon({
         html: `
           <div class="relative flex items-center justify-center">
-            <div class="w-3.5 h-3.5 bg-[#7cbcc7] rounded-full border-2 border-white shadow-md"></div>
-            <div class="absolute w-7 h-7 bg-[#7cbcc7] rounded-full opacity-35 animate-ping"></div>
+            <div class="w-3.5 h-3.5 bg-[#7cbec7] rounded-full border-2 border-white shadow-md"></div>
+            <div class="absolute w-7 h-7 bg-[#7cbec7] rounded-full opacity-35 animate-ping"></div>
           </div>
         `,
         className: 'user-location-marker',
